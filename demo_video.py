@@ -68,27 +68,25 @@ if __name__ == '__main__':
         out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), frame_rate, (output_width, frame_height))
         
         while raw_video.isOpened():
-            
             with torch.no_grad():
-                with torch.no_grad():
-                    re1, frame1 = raw_video.read()
-                    re2, frame2 = raw_video.read()
-                    if not re1 or not re2:
-                        break
-                    img1 = torch.from_numpy(frame1).permute(2, 0, 1).float()
-                    frame1 = img1[None].to(DEVICE)
-                    img2 = torch.from_numpy(frame2).permute(2, 0, 1).float()
-                    frame2 = img2[None].to(DEVICE)
-                    padder = InputPadder(frame1.shape)
-                    frame1, frame2 = padder.pad(frame1, frame2)
-                    flw_low, flow_up = model(frame1, frame2, iters=20, test_mode=True)
-                    img = frame1[0].permute(1,2,0).cpu().numpy()
-                    flo = flow_up[0].permute(1,2,0).cpu().numpy()
+                re1, frame1 = raw_video.read()
+                re2, frame2 = raw_video.read()
+                if not re1 or not re2:
+                    break
+                img1 = torch.from_numpy(frame1).permute(2, 0, 1).float()
+                frame1 = img1[None].to(DEVICE)
+                img2 = torch.from_numpy(frame2).permute(2, 0, 1).float()
+                frame2 = img2[None].to(DEVICE)
+                padder = InputPadder(frame1.shape)
+                frame1, frame2 = padder.pad(frame1, frame2)
+                flw_low, flow_up = model(frame1, frame2, iters=20, test_mode=True)
+                img = frame1[0].permute(1,2,0).cpu().numpy()
+                flo = flow_up[0].permute(1,2,0).cpu().numpy()
+                flo = flow_viz.flow_to_image(flo)
 
-                    out.write((flo[:, :, [2,1,0]] * 255).astype(np.uint8))
+                out.write((flo[:, :, [2,1,0]] * 255).astype(np.uint8))
 
             
-            #out.write(depth_color)
         
         raw_video.release()
         out.release()
