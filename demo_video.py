@@ -64,18 +64,21 @@ if __name__ == '__main__':
         output_width = frame_width
         
         filename = os.path.basename(filename)
-        output_path = os.path.join(args.outdir, filename[:filename.rfind('.')] + '_video_depth.mp4')
+        output_path = os.path.join(args.outdir, filename[:filename.rfind('.')] + '_optical_flow.mp4')
         out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), frame_rate, (output_width, frame_height))
         
+        prev_frame = None
         while raw_video.isOpened():
             with torch.no_grad():
-                re1, frame1 = raw_video.read()
-                re2, frame2 = raw_video.read()
-                if not re1 or not re2:
+                ret, curr_frame = raw_video.read()
+                if not ret:
                     break
-                img1 = torch.from_numpy(frame1).permute(2, 0, 1).float()
+                if prev_frame is None:
+                    prev_frame = curr_frame
+                    continue
+                img1 = torch.from_numpy(prev_frame).permute(2, 0, 1).float()
                 frame1 = img1[None].to(DEVICE)
-                img2 = torch.from_numpy(frame2).permute(2, 0, 1).float()
+                img2 = torch.from_numpy(curr_frame).permute(2, 0, 1).float()
                 frame2 = img2[None].to(DEVICE)
                 padder = InputPadder(frame1.shape)
                 frame1, frame2 = padder.pad(frame1, frame2)
@@ -85,6 +88,7 @@ if __name__ == '__main__':
                 flo = flow_viz.flow_to_image(flo)
 
                 out.write((flo[:, :, [2,1,0]] * 255).astype(np.uint8))
+            prev_frame = curr_frame
 
             
         
