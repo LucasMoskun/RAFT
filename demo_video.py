@@ -64,9 +64,17 @@ if __name__ == '__main__':
         output_width = frame_width
         
         filename = os.path.basename(filename)
-        output_path = os.path.join(args.outdir, filename[:filename.rfind('.')] + '_optical_flow.mp4')
+        basename = filename[:filename.rfind('.')]
+        output_dir = os.path.join(args.outdir, basename)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        output_path = os.path.join(output_dir, basename + '_optical_flow.mp4')
+        png_output_path = os.path.join(output_dir, basename + '_optical_flow_png')
+        if not os.path.exists(png_output_path):
+            os.makedirs(png_output_path)
         out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), frame_rate, (output_width, frame_height))
         
+        frame_count = 0 
         prev_frame = None
         while raw_video.isOpened():
             with torch.no_grad():
@@ -88,6 +96,12 @@ if __name__ == '__main__':
                 flo = flow_viz.flow_to_image(flo)
 
                 out.write((flo[:, :, [2,1,0]] * 255).astype(np.uint8))
+
+                png_filename = os.path.join(png_output_path, '{:04d}.png'.format(frame_count))
+                success = cv2.imwrite(png_filename, flo)
+                if not success:
+                    print('Failed to write', png_filename)
+                frame_count += 1
             prev_frame = curr_frame
 
             
